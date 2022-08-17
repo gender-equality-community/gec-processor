@@ -15,9 +15,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Get branch name
+      id: branch-name
+      uses: tj-actions/branch-names@v5.4
+
     - name: Build and push containers
       run: |
         set -axe
 
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
-        make docker-build docker-push
+        TAG=${{ steps.branch-name.outputs.current_branch }} make docker-build docker-push
