@@ -5,6 +5,9 @@ name = "pypi"
 
 [packages]
 redis = "*"
+walrus = "*"
+transformers = "*"
+torch = "*"
 
 [dev-packages]
 

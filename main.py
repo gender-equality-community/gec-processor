@@ -1,36 +1,43 @@
 from os import environ
-from redis import Redis
+from walrus import Database
+from transformers import pipeline
 
-stream_key = environ.get("STREAM", "gec")
+sentiment_pipeline = pipeline("sentiment-analysis", model="siebert/sentiment-roberta-large-english")
 
-
-def connect_to_redis():
-    hostname = environ.get("REDIS_HOSTNAME", "localhost")
-    port = environ.get("REDIS_PORT", 6379)
-
-    r = Redis(hostname, port, retry_on_timeout=True)
-    return r
+hostname = environ.get("REDIS_HOSTNAME", "localhost")
+port = environ.get("REDIS_PORT", 6379)
+db_id = environ.get("REDIS_DB", 0)
 
 
-def get_data(redis_connection):
-    last_id = 0
-    sleep_ms = 5000
+class Processor:
+    def __init__(self):
+        db = Database(host=hostname, port=port, db=db_id)
 
-    while True:
-        try:
-            resp = redis_connection.xread(
-                {stream_key: last_id}, count=1, block=sleep_ms
-            )
-            if resp:
-                key, messages = resp[0]
-                last_id, data = messages[0]
-                print("REDIS ID: ", last_id)
-                print("      --> ", data)
+        self.cg = db.consumer_group('gec-processor', 'gec')
+        self.cg.create()
+        self.cg.set_id('$')
 
-        except ConnectionError as e:
-            print("ERROR REDIS CONNECTION: {}".format(e))
+        self.p = db.Stream('gec-processed')
+
+
+    def work(self):
+        while True:
+            try:
+                resp = self.cg.read(1)
+
+                if resp:
+                    key, messages = resp[0]
+                    last_id, data = messages[0]
+
+                    self.cg.gec.ack(last_id)
+
+                    data[b'sentiment'] = sentiment_pipeline(str(data[b'msg']))[0]['label']
+                    self.p.add(data)
+
+            except ConnectionError as e:
+                print("ERROR REDIS CONNECTION: {}".format(e))
 
 
 if __name__ == "__main__":
-    connection = connect_to_redis()
-    get_data(connection)
+    processor = Processor()
+    processor.work()
