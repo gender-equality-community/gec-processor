@@ -7,3 +7,6 @@ docker-build:
 
 docker-push:
 	docker push $(IMG):$(TAG)
+
+.image:
+	echo $(IMG):$(TAG) > $@
