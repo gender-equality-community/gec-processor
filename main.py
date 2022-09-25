@@ -1,9 +1,5 @@
 from os import environ
 from walrus import Database
-from transformers import pipeline
-
-sentiment_pipeline = pipeline("sentiment-analysis", model="siebert/sentiment-roberta-large-english")
-
 hostname = environ.get("REDIS_HOSTNAME", "localhost")
 port = environ.get("REDIS_PORT", 6379)
 db_id = environ.get("REDIS_DB", 0)
@@ -31,7 +27,7 @@ class Processor:
 
                     self.cg.gec.ack(last_id)
 
-                    data[b'sentiment'] = sentiment_pipeline(str(data[b'msg']))[0]['label']
+                    data[b'sentiment'] = "-1"
                     self.p.add(data)
 
             except ConnectionError as e:
