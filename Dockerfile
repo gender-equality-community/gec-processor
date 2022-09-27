@@ -1,16 +1,17 @@
-FROM python:3.10.6
-
-RUN useradd -u 1000 -s /bin/false -d /tmp app
+FROM python:3.9 as build
 
 ADD . /app
 WORKDIR /app
 
-RUN pip install pipenv
+RUN pip install pipenv && \
+    pipenv install --system --deploy --ignore-pipfile
 
-RUN chown -R 1000:1000 /app
+FROM gcr.io/distroless/python3
 
-USER 1000
-RUN pipenv install --system --deploy --ignore-pipfile
+ENV PYTHONPATH=/usr/lib/python3.9/site-packages
 
-ENTRYPOINT ["/usr/local/bin/python3"]
-CMD ["main.py"]
+COPY --from=build /usr/local/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages
+COPY --from=build /app /app
+
+ENTRYPOINT ["/usr/bin/python"]
+CMD ["/app/main.py"]
