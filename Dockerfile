@@ -6,7 +6,7 @@ WORKDIR /app
 RUN pip install pipenv && \
     pipenv install --system --deploy --ignore-pipfile
 
-FROM gcr.io/distroless/python3
+FROM gcr.io/distroless/python3:nonroot
 
 ENV PYTHONPATH=/usr/lib/python3.9/site-packages
 
