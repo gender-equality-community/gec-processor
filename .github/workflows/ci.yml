@@ -9,9 +9,16 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions: read-all
+
 jobs:
   build-and-push:
+    permissions:
+      packages: write
+      contents: write
+
     runs-on: ubuntu-latest
+    if: contains(github.ref, 'refs/tags')
     steps:
     - uses: actions/checkout@v2
 
